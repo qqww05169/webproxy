@@ -46,11 +46,15 @@ function rewriteHtml(html, target) {
   html = html.replace(/<meta[^>]+http-equiv=["']?content-security-policy["']?[^>]*>/gi, '');
   html = html.replace(/<base[^>]*>/gi, '');
 
-  html = html.replace(/(href|src|action|poster)\s*=\s*(["'])(.*?)\2/gi, (m, attr, q, val) => {
+  html = html.replace(/(href|src|poster)\s*=\s*(["'])(.*?)\2/gi, (m, attr, q, val) => {
     if (!val || /^(#|data:|javascript:|mailto:|tel:)/i.test(val)) return m;
     const fn = attr.toLowerCase() === 'href' ? prox : proxRaw;
     return `${attr}=${q}${fn(val)}${q}`;
   });
+
+  // 资源完整性/跨域属性会让改写后的地址校验失败，直接去掉
+  html = html.replace(/\sintegrity\s*=\s*(["']).*?\1/gi, '');
+  html = html.replace(/\scrossorigin(\s*=\s*(["']).*?\2)?/gi, '');
 
   // srcset
   html = html.replace(/srcset\s*=\s*(["'])(.*?)\1/gi, (m, q, val) => {
