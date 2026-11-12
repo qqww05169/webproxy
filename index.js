@@ -61,10 +61,13 @@ function rewriteHtml(html, target) {
     return `srcset=${q}${parts.join(',')}${q}`;
   });
 
-  // form 提交也走代理
-  html = html.replace(/<form([^>]*)>/gi, (m, attrs) =>
-    `<form${attrs.replace(/action\s*=\s*(["']).*?\1/gi, '').replace(/<form/i, '')} action="/p" method="get">
-     <input type="hidden" name="url" value="${target.replace(/"/g, '&quot;')}">`);
+  // form 提交也走代理：把 action 换成 /p?url=<目标>，浏览器追加的参数由 /p 处理时合并
+  html = html.replace(/<form([^>]*)>/gi, (m, attrs) => {
+    const am = /action\s*=\s*(["'])(.*?)\1/i.exec(attrs);
+    const act = am ? abs(target, am[2]) : target;
+    const cleaned = attrs.replace(/action\s*=\s*(["']).*?\1/gi, '').replace(/method\s*=\s*(["']).*?\1/gi, '');
+    return `<form${cleaned} action="/p?url=${encodeURIComponent(act)}" method="get">`;
+  });
 
   // 给页面加一个返回条
   const bar = `<div style="position:fixed;left:0;right:0;top:0;z-index:2147483647;background:#0f1115;
@@ -76,6 +79,8 @@ function rewriteHtml(html, target) {
 }
 
 function fetchTarget(target, res, isRaw) {
+  target = String(target || '').trim();
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(target)) target = 'https://' + target;
   let u;
   try { u = new URL(target); } catch { res.writeHead(400); return res.end('bad url'); }
   if (u.protocol !== 'http:' && u.protocol !== 'https:') {
@@ -141,8 +146,13 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end(HOME);
   }
   if (url.pathname === '/p' || url.pathname === '/raw') {
-    const target = url.searchParams.get('url');
+    let target = url.searchParams.get('url');
     if (!target) { res.writeHead(400); return res.end('missing url'); }
+    // 把表单额外参数合并到目标地址
+    const extra = new URLSearchParams(url.searchParams);
+    extra.delete('url');
+    const qs = extra.toString();
+    if (qs) target += (target.includes('?') ? '&' : '?') + qs;
     return fetchTarget(target, res, url.pathname === '/raw');
   }
   res.writeHead(404, { 'Content-Type': 'text/plain' }); res.end('not found');
