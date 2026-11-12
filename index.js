@@ -70,7 +70,7 @@ function rewriteHtml(html, target) {
     const am = /action\s*=\s*(["'])(.*?)\1/i.exec(attrs);
     const act = am ? abs(target, am[2]) : target;
     const cleaned = attrs.replace(/action\s*=\s*(["']).*?\1/gi, '').replace(/method\s*=\s*(["']).*?\1/gi, '');
-    return `<form${cleaned} action="/p?url=${encodeURIComponent(act)}" method="get">`;
+    return `<form${cleaned} action="/p/${encodeURIComponent(act)}" method="get">`;
   });
 
   // 给页面加一个返回条
@@ -149,6 +149,17 @@ http.createServer((req, res) => {
   if (url.pathname === '/' || url.pathname === '') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end(HOME);
   }
+  // 路径式：/p/<encodeURIComponent(目标)>?q=xxx   —— GET 表单提交时必须用这种
+  if (url.pathname.startsWith('/p/') || url.pathname.startsWith('/raw/')) {
+    const isRaw = url.pathname.startsWith('/raw/');
+    const rawTarget = decodeURIComponent(url.pathname.slice(isRaw ? 5 : 3));
+    if (!rawTarget) { res.writeHead(400); return res.end('missing url'); }
+    const extra = new URLSearchParams(url.searchParams);
+    const qs = extra.toString();
+    const target = qs ? rawTarget + (rawTarget.includes('?') ? '&' : '?') + qs : rawTarget;
+    return fetchTarget(target, res, isRaw);
+  }
+
   if (url.pathname === '/p' || url.pathname === '/raw') {
     let target = url.searchParams.get('url');
     if (!target) { res.writeHead(400); return res.end('missing url'); }
