@@ -21,17 +21,41 @@ const HOME = `<!doctype html><html lang="zh"><head><meta charset="utf-8">
 <style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
 background:#0f1115;color:#e6e6e6;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.box{width:min(680px,92vw)}h1{font-size:22px;margin:0 0 6px}p{color:#8b93a1;margin:0 0 18px;font-size:13px}
-form{display:flex;gap:8px}input{flex:1;padding:12px 14px;border-radius:8px;border:1px solid #2a2f3a;
+.box{width:min(720px,92vw)}h1{font-size:22px;margin:0 0 6px}p{color:#8b93a1;margin:0 0 18px;font-size:13px}
+form{display:flex;gap:8px;margin-bottom:14px}input{flex:1;padding:12px 14px;border-radius:8px;border:1px solid #2a2f3a;
 background:#151922;color:#e6e6e6;font-size:15px;outline:none}input:focus{border-color:#4c7dff}
 button{padding:12px 20px;border:0;border-radius:8px;background:#4c7dff;color:#fff;font-size:15px;cursor:pointer}
-button:hover{background:#3d68e0}.tip{margin-top:14px;color:#5c6472;font-size:12px}
+button:hover{background:#3d68e0}.tip{margin-top:14px;color:#5c6472;font-size:12px;line-height:1.9}
+a{color:#4c7dff;text-decoration:none}.badge{display:inline-block;padding:1px 6px;border:1px solid #2a2f3a;border-radius:4px;font-size:11px;color:#8b93a1;margin-right:6px}
 </style></head><body><div class="box">
-<h1>网页代理</h1><p>输入网址，服务器代你抓取（出口在美国）</p>
-<form action="/p" method="get"><input name="url" placeholder="https://example.com" autofocus>
-<button type="submit">打开</button></form>
-<div class="tip">支持 http / https。需要登录的站点不可用。</div>
-</div></body></html>`;
+<h1>网页代理</h1><p>出口在美国（Render Oregon），服务器代你抓页面</p>
+
+<form action="/p/https%3A%2F%2Fwww.bing.com%2Fsearch" method="get">
+  <input name="q" placeholder="搜索点什么（Bing，不会被风控）" autofocus>
+  <button type="submit">搜索</button>
+</form>
+
+<form onsubmit="go(event)">
+  <input id="u" placeholder="或者直接打开网址，如 zh.wikipedia.org">
+  <button type="submit">打开</button>
+</form>
+
+<div class="tip">
+<span class="badge">注意</span>谷歌搜索会被风控（数据中心 IP 会被要求过验证码），改用 Bing 或 DuckDuckGo。<br>
+<span class="badge">注意</span>纯 JS 渲染的站（X、Instagram、ping0.cc 这类）会白屏，代理搬不动它们的脚本。<br>
+<span class="badge">提示</span>服务 15 分钟没人用会睡，第一次打开要等半分钟。
+</div>
+</div>
+<script>
+function go(e){
+  e.preventDefault();
+  var v=document.getElementById('u').value.trim();
+  if(!v) return;
+  if(!/^[a-zA-Z][a-zA-Z0-9+.-]*:\\/\\//.test(v)) v='https://'+v;
+  location.href='/p/'+encodeURIComponent(v);
+}
+</script>
+</body></html>`;
 
 function abs(base, rel) {
   try { return new URL(rel, base).toString(); } catch { return rel; }
